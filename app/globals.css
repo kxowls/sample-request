@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #006633;
+  --primary-dark: #004d26;
+}
+
+.btn-primary {
+  @apply bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors;
+}
+
+.btn-secondary {
+  @apply bg-white text-primary border border-primary px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors;
+}
+
+.link {
+  @apply text-primary hover:text-primary-dark transition-colors;
+} 
