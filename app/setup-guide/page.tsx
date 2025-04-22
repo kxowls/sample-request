@@ -370,7 +370,7 @@ function getSheetData(sheetName) {
             <li>
               <code>app/api/books/route.ts</code>와 <code>app/api/books/[id]/route.ts</code> 파일에서 다음 URL을 방금 받은 URL로 교체합니다:
               <pre className="bg-gray-100 p-3 my-2 rounded-md overflow-auto">
-                {'https://script.google.com/macros/s/AKfycbzQZEuPLaavfZZS39wbvjz6FxHuMNgM2UHfNWw4nY8lOuHVZp5Ixu2Q3-h5rUYO3nKH/exec'}
+                {'https://script.google.com/macros/s/AKfycbzcg_fKXdPkSYS6ldRjQk6D3mAGQaBfIt2VwBavtb1Cp3JWXpHM0MAIAA1ZVXdLk88/exec'}
               </pre>
             </li>
             <li>

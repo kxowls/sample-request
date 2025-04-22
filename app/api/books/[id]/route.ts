@@ -18,7 +18,7 @@ interface Book {
 async function fetchBooksFromGoogleSheet(): Promise<Book[]> {
   try {
     const response = await fetch(
-      'https://script.google.com/macros/s/AKfycbzQZEuPLaavfZZS39wbvjz6FxHuMNgM2UHfNWw4nY8lOuHVZp5Ixu2Q3-h5rUYO3nKH/exec?sheet=Sheet1'
+      'https://script.google.com/macros/s/AKfycbzcg_fKXdPkSYS6ldRjQk6D3mAGQaBfIt2VwBavtb1Cp3JWXpHM0MAIAA1ZVXdLk88/exec'
     );
 
     if (!response.ok) {
