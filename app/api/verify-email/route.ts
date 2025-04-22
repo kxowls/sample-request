@@ -38,10 +38,10 @@ async function fetchEmailList(): Promise<EmailRecord[]> {
 // 백업용 기본 이메일 목록
 function getDefaultEmails(): EmailRecord[] {
   return [
-    { email: 'professor@university.ac.kr' },
-    { email: 'teacher@edu.com' },
-    { email: 'instructor@school.edu' },
-    { email: 'test@example.com' }
+    { email: 'professor@university.ac.kr', institution: '테스트 대학교', department: '컴퓨터공학과' },
+    { email: 'teacher@edu.com', institution: '교육 학원', department: '교육학과' },
+    { email: 'instructor@school.edu', institution: '직업 전문학교', department: '정보통신학과' },
+    { email: 'test@example.com', institution: '테스트 기관', department: '테스트 부서' }
   ];
 }
 
@@ -61,9 +61,18 @@ export async function GET(request: Request) {
     const emailList = await fetchEmailList();
     
     // 해당 이메일이 있는지 확인
-    const verified = emailList.some(record => record.email === email);
+    const foundEmail = emailList.find(record => record.email === email);
     
-    return NextResponse.json({ verified });
+    if (foundEmail) {
+      return NextResponse.json({
+        verified: true,
+        institution: foundEmail.institution || '',
+        department: foundEmail.department || '',
+        name: foundEmail.name || ''
+      });
+    } else {
+      return NextResponse.json({ verified: false });
+    }
   } catch (error: any) {
     console.error('이메일 확인 중 오류 발생:', error);
     return NextResponse.json(

@@ -35,6 +35,8 @@ export default function BookDetail() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
 
   useEffect(() => {
     const fetchBook = async () => {
@@ -61,11 +63,56 @@ export default function BookDetail() {
       ...prev,
       [name]: value,
     }));
+
+    // 이메일이 변경되면 확인 상태 초기화
+    if (name === 'email') {
+      setEmailVerified(null);
+    }
+  };
+
+  const verifyEmail = async () => {
+    if (!formData.email) {
+      setSubmitError('이메일을 입력해주세요.');
+      return;
+    }
+
+    setIsVerifying(true);
+    setSubmitError('');
+
+    try {
+      const response = await fetch(`/api/verify-email?email=${encodeURIComponent(formData.email)}`);
+      const data = await response.json();
+      
+      setEmailVerified(data.verified);
+      
+      if (data.verified) {
+        // 이메일 인증 성공 시 기관 및 부서 정보 자동 입력
+        setFormData(prev => ({
+          ...prev,
+          institution: data.institution || prev.institution,
+          department: data.department || prev.department,
+          name: data.name || prev.name
+        }));
+      } else {
+        setSubmitError('등록된 교강사 이메일이 아닙니다.');
+      }
+    } catch (error) {
+      console.error('이메일 확인 중 오류 발생:', error);
+      setEmailVerified(false);
+      setSubmitError('이메일 확인 중 오류가 발생했습니다.');
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!book) return;
+
+    if (!emailVerified) {
+      setSubmitError('이메일 인증이 필요합니다.');
+      return;
+    }
 
     setIsSubmitting(true);
     setSubmitError('');
@@ -281,15 +328,31 @@ export default function BookDetail() {
                 <label htmlFor="email" className="block text-gray-700 font-medium mb-2">
                   이메일 *
                 </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
+                <div className="flex">
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={verifyEmail}
+                    disabled={isVerifying || !formData.email}
+                    className="ml-2 px-3 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 disabled:bg-gray-400 whitespace-nowrap"
+                  >
+                    {isVerifying ? '확인 중...' : '이메일 확인'}
+                  </button>
+                </div>
+                {emailVerified === true && (
+                  <p className="mt-1 text-sm text-green-600">인증되었습니다.</p>
+                )}
+                {emailVerified === false && (
+                  <p className="mt-1 text-sm text-red-600">등록된 교강사 이메일이 아닙니다.</p>
+                )}
               </div>
               <div>
                 <label htmlFor="institution" className="block text-gray-700 font-medium mb-2">
@@ -303,6 +366,7 @@ export default function BookDetail() {
                   onChange={handleInputChange}
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                  readOnly={emailVerified === true}
                 />
               </div>
               <div>
@@ -316,6 +380,7 @@ export default function BookDetail() {
                   value={formData.department}
                   onChange={handleInputChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                  readOnly={emailVerified === true}
                 />
               </div>
             </div>
@@ -358,7 +423,7 @@ export default function BookDetail() {
             <div className="flex justify-end">
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !emailVerified}
                 className="btn-primary px-6 py-3 flex items-center"
               >
                 {isSubmitting ? (

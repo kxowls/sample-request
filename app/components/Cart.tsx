@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useCart } from './CartContext';
 import Image from 'next/image';
-import { FaTrash, FaShoppingCart } from 'react-icons/fa';
+import { FaTrash, FaShoppingCart, FaCheck, FaTimes } from 'react-icons/fa';
 import Link from 'next/link';
 
 export default function Cart() {
@@ -12,10 +12,13 @@ export default function Cart() {
   const [isRequesting, setIsRequesting] = useState(false);
   const [requestSuccess, setRequestSuccess] = useState(false);
   const [requestError, setRequestError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    institution: ''
+    institution: '',
+    department: ''
   });
 
   const toggleCart = () => {
@@ -32,13 +35,57 @@ export default function Cart() {
       ...formData,
       [name]: value
     });
+
+    // 이메일 필드가 변경되면 인증 상태 초기화
+    if (name === 'email') {
+      setEmailVerified(null);
+    }
+  };
+
+  const verifyEmail = async () => {
+    if (!formData.email) {
+      setRequestError('이메일을 입력해주세요.');
+      return;
+    }
+
+    setIsVerifying(true);
+    setRequestError('');
+
+    try {
+      const response = await fetch(`/api/verify-email?email=${encodeURIComponent(formData.email)}`);
+      const data = await response.json();
+      
+      setEmailVerified(data.verified);
+      
+      if (data.verified) {
+        // 이메일 인증 성공 시 기관 및 부서 정보 자동 입력
+        setFormData(prev => ({
+          ...prev,
+          institution: data.institution || prev.institution,
+          department: data.department || prev.department,
+          name: data.name || prev.name
+        }));
+      } else {
+        setRequestError('등록된 교강사 이메일이 아닙니다.');
+      }
+    } catch (error) {
+      console.error('이메일 확인 중 오류 발생:', error);
+      setRequestError('이메일 확인 중 오류가 발생했습니다.');
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.email || !formData.institution) {
-      setRequestError('모든 필드를 입력해주세요.');
+      setRequestError('모든 필수 필드를 입력해주세요.');
+      return;
+    }
+
+    if (!emailVerified) {
+      setRequestError('이메일 인증이 필요합니다.');
       return;
     }
 
@@ -65,6 +112,7 @@ export default function Cart() {
           name: formData.name,
           email: formData.email,
           institution: formData.institution,
+          department: formData.department,
           books: items
         }),
       });
@@ -77,8 +125,10 @@ export default function Cart() {
         setFormData({
           name: '',
           email: '',
-          institution: ''
+          institution: '',
+          department: ''
         });
+        setEmailVerified(null);
       } else {
         setRequestError(data.error || '신청 중 오류가 발생했습니다.');
       }
@@ -190,6 +240,41 @@ export default function Cart() {
                     <h3 className="text-lg font-medium mb-3">견본 도서 신청</h3>
                     <div className="space-y-3">
                       <div>
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                          이메일 *
+                        </label>
+                        <div className="mt-1 flex">
+                          <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleInputChange}
+                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={verifyEmail}
+                            disabled={isVerifying || !formData.email}
+                            className="ml-2 px-3 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                          >
+                            {isVerifying ? '확인 중...' : '인증'}
+                          </button>
+                        </div>
+                        {emailVerified === true && (
+                          <p className="mt-1 text-sm text-green-600 flex items-center">
+                            <FaCheck className="mr-1" /> 인증됨
+                          </p>
+                        )}
+                        {emailVerified === false && (
+                          <p className="mt-1 text-sm text-red-600 flex items-center">
+                            <FaTimes className="mr-1" /> 인증 실패
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
                         <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                           이름 *
                         </label>
@@ -203,23 +288,10 @@ export default function Cart() {
                           required
                         />
                       </div>
-                      <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                          이메일 *
-                        </label>
-                        <input
-                          type="email"
-                          id="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-                          required
-                        />
-                      </div>
+                      
                       <div>
                         <label htmlFor="institution" className="block text-sm font-medium text-gray-700">
-                          소속 기관 *
+                          소속 기관/학교 *
                         </label>
                         <input
                           type="text"
@@ -229,6 +301,22 @@ export default function Cart() {
                           onChange={handleInputChange}
                           className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                           required
+                          readOnly={emailVerified === true}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="department" className="block text-sm font-medium text-gray-700">
+                          학과/부서
+                        </label>
+                        <input
+                          type="text"
+                          id="department"
+                          name="department"
+                          value={formData.department}
+                          onChange={handleInputChange}
+                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                          readOnly={emailVerified === true}
                         />
                       </div>
                     </div>
@@ -240,7 +328,7 @@ export default function Cart() {
                     <div className="mt-4">
                       <button
                         type="submit"
-                        disabled={isRequesting}
+                        disabled={isRequesting || !emailVerified}
                         className="w-full bg-primary text-white py-2 px-4 rounded hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isRequesting ? '신청 처리 중...' : '견본 도서 신청하기'}

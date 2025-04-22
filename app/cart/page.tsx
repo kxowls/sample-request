@@ -67,6 +67,13 @@ export default function Cart() {
       if (!data.verified) {
         setSubmitError('교강사 이메일 인증에 실패했습니다. 등록된 이메일이 아닙니다.');
       } else {
+        // 인증 성공 시 기관 및 부서 정보 자동 입력
+        setFormData(prev => ({
+          ...prev,
+          institution: data.institution || prev.institution,
+          department: data.department || prev.department,
+          name: data.name || prev.name
+        }));
         setSubmitError('');
       }
     } catch (error) {
@@ -277,6 +284,7 @@ export default function Cart() {
                     onChange={handleInputChange}
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                    readOnly={emailVerified === true}
                   />
                 </div>
                 
@@ -291,6 +299,7 @@ export default function Cart() {
                     value={formData.department}
                     onChange={handleInputChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                    readOnly={emailVerified === true}
                   />
                 </div>
                 
