@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaBook, FaSearch, FaFilter } from 'react-icons/fa';
+import { FaBook, FaSearch, FaFilter, FaCog } from 'react-icons/fa';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -50,17 +50,22 @@ export default function Home() {
             <h1 className="text-2xl font-bold text-gray-800">
               교강사 견본 도서 신청
             </h1>
-            <div className="w-full md:w-96">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="도서명, 저자, 출판사로 검색하세요"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
-                <FaSearch className="absolute right-4 top-3 text-gray-400" />
+            <div className="flex items-center gap-4">
+              <div className="w-full md:w-96">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="도서명, 저자로 검색하세요"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                  <FaSearch className="absolute right-4 top-3 text-gray-400" />
+                </div>
               </div>
+              <Link href="/setup-guide" className="text-gray-600 hover:text-primary">
+                <FaCog className="text-xl" title="스프레드시트 연동 설정" />
+              </Link>
             </div>
           </div>
           

@@ -150,28 +150,24 @@ function getDefaultBooks(): Book[] {
   ];
 }
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const query = searchParams.get('q')?.toLowerCase() || '';
-  const category = searchParams.get('category') || '';
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  const id = parseInt(params.id);
   
   // 구글 스프레드시트에서 도서 데이터 가져오기
   const books = await fetchBooksFromGoogleSheet();
-  
-  let filteredBooks = books;
-  
-  if (query) {
-    filteredBooks = books.filter(book => 
-      book.title.toLowerCase().includes(query) ||
-      book.author.toLowerCase().includes(query)
-    );
-  }
-  
-  if (category) {
-    filteredBooks = filteredBooks.filter(book => 
-      book.category === category
-    );
+  const book = books.find(book => book.id === id);
+
+  if (!book) {
+    return new NextResponse(JSON.stringify({ error: '도서를 찾을 수 없습니다' }), {
+      status: 404,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 
-  return NextResponse.json(filteredBooks);
+  return NextResponse.json(book);
 } 
