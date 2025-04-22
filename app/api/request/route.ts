@@ -1,58 +1,71 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+
+type BookRequest = {
+  name: string;
+  email: string;
+  institution: string;
+  books: Array<{
+    id: string;
+    title: string;
+    author: string;
+    publisher: string;
+  }>;
+};
 
 export async function POST(request: Request) {
   try {
-    const requestData = await request.json();
+    const body: BookRequest = await request.json();
     
     // 필수 필드 검증
-    const requiredFields = ['name', 'email', 'institution', 'address', 'reason', 'bookId', 'bookTitle'];
-    for (const field of requiredFields) {
-      if (!requestData[field]) {
-        return NextResponse.json(
-          { error: `${field} 필드가 필요합니다` },
-          { status: 400 }
-        );
-      }
+    if (!body.name || !body.email || !body.institution) {
+      return NextResponse.json(
+        { error: '모든 필수 필드를 입력해주세요.' },
+        { status: 400 }
+      );
     }
 
-    // 구글 스프레드시트에 데이터 저장
-    const response = await fetch(
-      'https://script.google.com/macros/s/AKfycbzcg_fKXdPkSYS6ldRjQk6D3mAGQaBfIt2VwBavtb1Cp3JWXpHM0MAIAA1ZVXdLk88/exec',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sheet: 'Sheet2', // 시트2에 데이터 저장
-          data: {
-            requestDate: new Date().toISOString(),
-            name: requestData.name,
-            email: requestData.email,
-            institution: requestData.institution,
-            department: requestData.department || '',
-            address: requestData.address,
-            reason: requestData.reason,
-            bookId: requestData.bookId,
-            bookTitle: requestData.bookTitle,
-            bookAuthor: requestData.bookAuthor || '',
-            bookIsbn: requestData.bookIsbn || '',
-            status: '신청접수', // 기본 상태
-          },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || '스프레드시트 저장 중 오류가 발생했습니다');
+    // 도서 수량 검증
+    if (!body.books || body.books.length === 0) {
+      return NextResponse.json(
+        { error: '최소 1권 이상의 도서를 선택해주세요.' },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error('견본 도서 신청 처리 중 오류:', error);
+    if (body.books.length > 3) {
+      return NextResponse.json(
+        { error: '최대 3권까지만 신청 가능합니다.' },
+        { status: 400 }
+      );
+    }
+
+    // 이메일 형식 검증
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(body.email)) {
+      return NextResponse.json(
+        { error: '유효하지 않은 이메일 형식입니다.' },
+        { status: 400 }
+      );
+    }
+
+    // 실제 서비스에서는 데이터베이스에 저장하거나 이메일 발송 등의 로직이 여기에 추가됩니다.
+    // 여기서는 목업으로 성공 응답만 반환합니다.
+    
+    console.log('견본 도서 신청 접수:', body);
+
     return NextResponse.json(
-      { error: error.message || '서버 오류가 발생했습니다' },
+      { 
+        success: true, 
+        message: '견본 도서 신청이 접수되었습니다.',
+        requestId: `REQ-${Date.now()}`,
+        requestDate: new Date().toISOString()
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('견본 도서 신청 처리 오류:', error);
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다. 나중에 다시 시도해주세요.' },
       { status: 500 }
     );
   }

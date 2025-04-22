@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaBook, FaSearch, FaFilter, FaCog } from 'react-icons/fa';
+import { FaBook, FaSearch, FaFilter, FaShoppingCart } from 'react-icons/fa';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 interface Book {
   id: number;
@@ -18,28 +19,81 @@ interface Book {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [cartItems, setCartItems] = useState<Book[]>([]);
+  const [cartCount, setCartCount] = useState(0);
+  const [showCartAlert, setShowCartAlert] = useState(false);
+  const [cartMessage, setCartMessage] = useState('');
 
+  // 페이지 로드 시 도서 목록을 가져오는 함수
+  const fetchBooks = async () => {
+    try {
+      const response = await fetch(`/api/books?q=${searchQuery}&category=${selectedCategory}`);
+      const data = await response.json();
+      setBooks(data);
+    } catch (error) {
+      console.error('도서 목록을 불러오는 중 오류가 발생했습니다:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 초기 로딩 시 도서 목록 가져오기
   useEffect(() => {
-    const fetchBooks = async () => {
-      try {
-        const response = await fetch(`/api/books?q=${searchQuery}&category=${selectedCategory}`);
-        const data = await response.json();
-        setBooks(data);
-      } catch (error) {
-        console.error('도서 목록을 불러오는 중 오류가 발생했습니다:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchBooks();
+  }, []);
 
+  // 검색어나 카테고리 변경 시 도서 목록 업데이트
+  useEffect(() => {
     fetchBooks();
   }, [searchQuery, selectedCategory]);
 
+  // 로컬 스토리지에서 장바구니 불러오기
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedCart = localStorage.getItem('cart');
+      if (storedCart) {
+        const parsedCart = JSON.parse(storedCart);
+        setCartItems(parsedCart);
+        setCartCount(parsedCart.length);
+      }
+    }
+  }, []);
+
   const categories = ['전체', '컴퓨터공학', '전기전자', '통계', '의료정보', '프로그래밍'];
+
+  const addToCart = (book: Book) => {
+    // 장바구니에 이미 있는지 확인
+    const isItemInCart = cartItems.some(item => item.id === book.id);
+    
+    if (isItemInCart) {
+      setCartMessage('이미 장바구니에 있는 도서입니다.');
+      setShowCartAlert(true);
+      setTimeout(() => setShowCartAlert(false), 3000);
+      return;
+    }
+    
+    // 장바구니 최대 개수 체크
+    if (cartItems.length >= 3) {
+      setCartMessage('장바구니에는 최대 3권의 도서만 담을 수 있습니다.');
+      setShowCartAlert(true);
+      setTimeout(() => setShowCartAlert(false), 3000);
+      return;
+    }
+    
+    const newCartItems = [...cartItems, book];
+    setCartItems(newCartItems);
+    setCartCount(newCartItems.length);
+    localStorage.setItem('cart', JSON.stringify(newCartItems));
+    
+    setCartMessage('도서가 장바구니에 추가되었습니다.');
+    setShowCartAlert(true);
+    setTimeout(() => setShowCartAlert(false), 3000);
+  };
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -63,9 +117,16 @@ export default function Home() {
                   <FaSearch className="absolute right-4 top-3 text-gray-400" />
                 </div>
               </div>
-              <Link href="/setup-guide" className="text-gray-600 hover:text-primary">
-                <FaCog className="text-xl" title="스프레드시트 연동 설정" />
-              </Link>
+              <div className="relative">
+                <Link href="/cart" className="text-gray-600 hover:text-primary p-2">
+                  <FaShoppingCart className="text-xl" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {cartCount}
+                    </span>
+                  )}
+                </Link>
+              </div>
             </div>
           </div>
           
@@ -86,6 +147,15 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Cart Alert */}
+      {showCartAlert && (
+        <div className="fixed top-20 right-4 bg-white shadow-lg rounded-lg p-4 max-w-xs z-50 transform transition-all">
+          <p className={cartMessage.includes('최대') || cartMessage.includes('이미') ? 'text-red-600' : 'text-green-600'}>
+            {cartMessage}
+          </p>
+        </div>
+      )}
 
       {/* Book List */}
       <section className="py-8">
@@ -123,12 +193,20 @@ export default function Home() {
                       <span className="text-primary font-bold">
                         {book.price.toLocaleString()}원
                       </span>
-                      <Link
-                        href={`/books/${book.id}`}
-                        className="btn-primary text-sm px-4 py-2"
-                      >
-                        견본 신청
-                      </Link>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => addToCart(book)}
+                          className="btn-secondary text-sm px-3 py-2 flex items-center"
+                        >
+                          <FaShoppingCart className="mr-1" /> 담기
+                        </button>
+                        <Link
+                          href={`/books/${book.id}`}
+                          className="btn-primary text-sm px-3 py-2"
+                        >
+                          상세보기
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -123,6 +123,12 @@ export default function BookDetail() {
       return;
     }
     
+    // 장바구니 최대 개수(3개) 체크
+    if (cartItems.length >= 3) {
+      alert('장바구니에는 최대 3권의 도서만 담을 수 있습니다.');
+      return;
+    }
+    
     // 장바구니에 추가
     cartItems.push({
       id: book.id,

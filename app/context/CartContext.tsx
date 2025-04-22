@@ -1,85 +1,65 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-interface Book {
-  id: number;
+// 장바구니에 들어갈 책 타입 정의
+export type CartItem = {
+  id: string;
   title: string;
   author: string;
   publisher: string;
   price: number;
   image: string;
-}
+};
 
-interface CartItem extends Book {
-  quantity: number;
-}
-
-interface CartContextType {
+// 장바구니 컨텍스트 타입 정의
+type CartContextType = {
   items: CartItem[];
-  addToCart: (book: Book) => void;
-  removeFromCart: (bookId: number) => void;
-  updateQuantity: (bookId: number, quantity: number) => void;
+  addItem: (item: CartItem) => void;
+  removeItem: (id: string) => void;
   clearCart: () => void;
-  totalItems: number;
-  totalPrice: number;
-}
+  isInCart: (id: string) => boolean;
+};
 
-const CartContext = createContext<CartContextType | undefined>(undefined);
+// 장바구니 컨텍스트 생성
+const CartContext = createContext<CartContextType | null>(null);
 
+// 장바구니 컨텍스트 프로바이더 컴포넌트
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
 
-  const addToCart = (book: Book) => {
-    setItems((prevItems) => {
-      const existingItem = prevItems.find((item) => item.id === book.id);
-      if (existingItem) {
-        return prevItems.map((item) =>
-          item.id === book.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      }
-      return [...prevItems, { ...book, quantity: 1 }];
-    });
-  };
-
-  const removeFromCart = (bookId: number) => {
-    setItems((prevItems) => prevItems.filter((item) => item.id !== bookId));
-  };
-
-  const updateQuantity = (bookId: number, quantity: number) => {
-    if (quantity < 1) {
-      removeFromCart(bookId);
+  // 장바구니에 아이템 추가
+  const addItem = (item: CartItem) => {
+    // 이미 있는 아이템이면 추가하지 않음
+    if (isInCart(item.id)) {
       return;
     }
-    setItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === bookId ? { ...item, quantity } : item
-      )
-    );
+    setItems((prev) => [...prev, item]);
   };
 
+  // 장바구니에서 아이템 제거
+  const removeItem = (id: string) => {
+    setItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  // 장바구니 비우기
   const clearCart = () => {
     setItems([]);
   };
 
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
+  // 장바구니에 특정 아이템이 있는지 확인
+  const isInCart = (id: string) => {
+    return items.some((item) => item.id === id);
+  };
 
   return (
     <CartContext.Provider
       value={{
         items,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
+        addItem,
+        removeItem,
         clearCart,
-        totalItems,
-        totalPrice,
+        isInCart,
       }}
     >
       {children}
@@ -87,9 +67,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// 장바구니 컨텍스트 사용을 위한 훅
 export function useCart() {
   const context = useContext(CartContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useCart must be used within a CartProvider');
   }
   return context;
